@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Inbox</title>
+</head>
+<body>
+    <h1>Inbox</h1>
+    <a href="/emails/compose">Compose</a>
+    <a href="/emails/outbox"> Out Box</a>
+    <a href="/auth/signin">Sign Out</a>
+    <table>
+        <tr>
+            <th>Sender</th>
+            <th>Subject</th>
+            <th>Received At</th>
+        </tr>
+        <% emails.forEach(email => { %>
+            <tr>
+                <td><%= email.from_user_id %></td>
+                <td><a href="/emails/detail/<%= email.id %>"><%= email.subject || '(no subject)' %></a></td>
+                <td><%= new Date(email.sent_at).toLocaleString() %></td>
+            </tr>
+        <% }); %>
+    </table>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Compose Email</title>
+</head>
+<body>
+    <h1>Compose Email</h1>
+    <form action="/emails/compose" method="POST" enctype="multipart/form-data">
+        <% if (users.length > 0) { %>
+            <select name="recipientId" required>
+            <option value="">Select Recipient</option>
+            <% users.forEach(user => { %>
+                <option value="<%= user.id %>"><%= user.name %></option>
+            <% }); %>
+            </select>
+        <% } else { %>
+            <p>No recipients available</p>
+        <% } %>
+        <input type="text" name="subject" placeholder="Subject">
+        <textarea name="body" placeholder="Email Body"></textarea>
+        <input type="file" name="attachment">
+        <button type="submit">Send</button>
+    </form>
+</body>
+</html>
