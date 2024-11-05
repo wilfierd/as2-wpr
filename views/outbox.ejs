@@ -1,53 +1,132 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Outbox</title>
-    <script>
-        async function deleteEmails() {
-            const checkboxes = document.querySelectorAll('input[name="emailCheckbox"]:checked');
-            const ids = Array.from(checkboxes).map(checkbox => checkbox.value);
-            if (ids.length === 0) {
-                alert('No emails selected');
-                return;
-            }
-            const response = await fetch('/emails/delete', {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ ids })
-            });
-            if (response.ok) {
-                ids.forEach(id => {
-                    document.getElementById(`email-${id}`).remove();
-                });
-            } else {
-                alert('Failed to delete emails');
-            }
-        }
-    </script>
-    </script>
+  <title>Outbox</title>
+  <style>
+    /* Add your styles here */
+    .pagination {
+        margin-top: 20px;
+    }
+    .pagination a {
+        margin: 0 5px;
+        text-decoration: none;
+        padding: 8px 12px;
+        background-color: #f1f1f1;
+        color: #333;
+        border-radius: 4px;
+    }
+    .pagination a.active {
+        background-color: #4CAF50;
+        color: white;
+    }
+    .pagination a.disabled {
+        background-color: #ddd;
+        color: #999;
+        pointer-events: none;
+    }
+</style>
 </head>
 <body>
-    <h1>Outbox</h1>
-    <a href="/emails/compose">Compose</a>
-    <a href="/emails/inbox">InBox</a>
-    <a href="/auth/signin">Sign Out</a>
-    <button onclick="deleteEmails()">Delete</button>
-    <table>
-        <tr>
-            <th>To</th>
-            <th>Subject</th>
-            <th>Sent At</th>
-        </tr>
-        <% emails.forEach(email => { %>
-            <tr id="email-<%= email.id %>">
-                <td><input type="checkbox" name="emailCheckbox" value="<%= email.id %>"></td>
-                <td><%= email.to_user_id %></td>
-                <td><a href="/emails/detail/<%= email.id %>"><%= email.subject || '(no subject)' %></a></td>
-                <td><%= new Date(email.sent_at).toLocaleString() %></td>
+  <h1>Inbox</h1>
+  <div class="controls">
+    <a href="/emails/compose" class="button">Compose</a>
+    <a href="/emails/inbox" class="button">InBox</a>
+    <a href="/auth/signin" class="button">Sign Out</a>
+    <button onclick="deleteEmails()" class="button delete">Delete Selected</button>
+  </div>
+  <form id="emailsForm">
+        <table>
+            <thead>
+            <tr>
+                <th><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
+                <th>To</th>
+                <th>Subject</th>
+                <th>Received At</th>
             </tr>
-        <% }); %>
-    </table>
+            </thead>
+            <tbody>
+            <% emails.forEach(email => { %>
+                <tr id="email-<%= email.id %>">
+                <td>
+                    <input type="checkbox" name="emailCheckbox" value="<%= email.id %>">
+                </td>
+                <td><%= email.to_user_id %></td>
+                <td>
+                    <a href="/emails/detail/<%= email.id %>">
+                    <%= email.subject || '(no subject)' %>
+                    </a>
+                </td>
+                <td><%= new Date(email.sent_at).toLocaleString() %></td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+  </form>
+   <!-- Pagination Controls -->
+   <div class="pagination">
+    <% if (currentPage > 1) { %>
+        <a href="/emails/outbox?page=<%= currentPage - 1 %>">Previous</a>
+    <% } else { %>
+        <a class="disabled">Previous</a>
+    <% } %>
+
+    <% for(let i = 1; i <= totalPages; i++) { %>
+        <a href="/emails/outbox?page=<%= i %>" class="<%= i === currentPage ? 'active' : '' %>"><%= i %></a>
+    <% } %>
+
+    <% if (currentPage < totalPages) { %>
+        <a href="/emails/outbox?page=<%= currentPage + 1 %>">Next</a>
+    <% } else { %>
+        <a class="disabled">Next</a>
+    <% } %>
+</div>
+  <script>
+        async function deleteEmails() {
+          try {
+            const checkboxes = document.querySelectorAll('input[name="emailCheckbox"]:checked');
+            const ids = Array.from(checkboxes).map(checkbox => parseInt(checkbox.value));
+            console.log('Selected IDs:', ids);
+            if (!ids.length) {
+              alert('Please select at least one email to delete');
+              return;
+            }
+            const response = await fetch('/emails/delete', {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ ids })
+            });
+            console.log('Response status:', response.status);
+            if (response.ok) {
+              // Access responseData only if the response is successful
+              const responseData = await response.text();
+              console.log('Response data:', responseData);
+              // Remove deleted emails from the DOM
+              ids.forEach(id => {
+                const row = document.getElementById(`email-${id}`);
+                if (row) {
+                  row.remove();
+                }
+              });
+              alert('Emails deleted successfully');
+            } else {
+              // Handle error responses
+              const errorData = await response.text();
+              throw new Error(errorData || 'Failed to delete emails');
+            }
+          } catch (error) {
+            console.error('Error deleting emails:', error);
+            alert('Error deleting emails: ' + error.message);
+          }
+        }
+      
+        function toggleAll(source) {
+        const checkboxes = document.getElementsByName('emailCheckbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = source.checked;
+        });
+    }
+  </script>
 </body>
 </html>

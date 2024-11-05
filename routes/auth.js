@@ -28,31 +28,45 @@ router.get('/signin', (req, res) => {
     res.render('signin'); 
 });
 
+// Render the sign-up page
+router.get('/signup', (req, res) => { 
+    res.render('signup', { errors: {}, validData: {} });
+});
 // Handle sign-up
 router.post('/signup', async (req, res) => {
     const { name, email, password, confirmPassword } = req.body;
 
-    // Error handling
+    // Initialize an object to hold error messages and valid data
+    let errors = {};
+    let validData = { name, email };
+
+    // Validation checks
     if (!name || !email || !password || !confirmPassword) {
-        return res.status(400).send('All fields are required');
+        errors.message = 'All fields are required';
+    } else {
+        if (password.length < 4) {
+            errors.message = 'Password too short';
+        }
+        if (password !== confirmPassword) {
+            errors.message = 'Passwords do not match';
+        }
     }
-    if (password.length < 6) {
-        return res.status(400).send('Password too short');
-    }
-    if (password !== confirmPassword) {
-        return res.status(400).send('Passwords do not match');
+
+    if (Object.keys(errors).length > 0) {
+        return res.render('signup', { errors, validData });
     }
 
     // Check if email is already used
     try {
         const [results] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
         if (results.length > 0) {
-            return res.status(400).send('Email already used');
+            errors.message = 'Email already used';
+            return res.render('signup', { errors, validData });
         }
 
         // Insert user into the database without hashing the password
         await db.query('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', [name, email, password]);
-        res.redirect('/signin');
+        res.redirect('/auth/signin');
     } catch (err) {
         console.error('Error during sign-up:', err);
         res.status(500).send('Internal Server Error');

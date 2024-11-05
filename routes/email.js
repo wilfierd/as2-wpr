@@ -47,10 +47,24 @@ function isAuthenticated(req, res, next) {
 // Inbox page
 router.get('/inbox', isAuthenticated, async (req, res) => {
     const userId = req.cookies.userId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 5;
+    const offset = (page - 1) * limit;
 
     try {
-        const [emails] = await db.query('SELECT * FROM emails WHERE to_user_id= ? ORDER BY sent_at DESC ', [userId]);
-        res.render('inbox', { emails });
+        // Get total count of emails
+        const [countResult] = await db.query('SELECT COUNT(*) as count FROM emails WHERE to_user_id = ?', [userId]);
+        const totalEmails = countResult[0].count;
+        const totalPages = Math.ceil(totalEmails / limit);
+
+        // Fetch emails with pagination
+        const [emails] = await db.query('SELECT * FROM emails WHERE to_user_id = ? ORDER BY sent_at DESC LIMIT ? OFFSET ?', [userId, limit, offset]);
+
+        res.render('inbox', { 
+            emails, 
+            currentPage: page, 
+            totalPages 
+        });
     } catch (err) {
         console.error('Error fetching inbox emails:', err);
         res.status(500).send('Internal Server Error');
@@ -125,15 +139,30 @@ router.post('/compose', isAuthenticated, upload.single('attachment'), async (req
 // Outbox page
 router.get('/outbox', isAuthenticated, async (req, res) => {
     const userId = req.cookies.userId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 5;
+    const offset = (page - 1) * limit;
 
     try {
-        const [emails] = await db.query('SELECT * FROM emails WHERE from_user_id = ? ORDER BY sent_at DESC ', [userId]);
-        res.render('outbox', { emails });
+        // Get total count of emails
+        const [countResult] = await db.query('SELECT COUNT(*) as count FROM emails WHERE from_user_id = ?', [userId]);
+        const totalEmails = countResult[0].count;
+        const totalPages = Math.ceil(totalEmails / limit);
+
+        // Fetch emails with pagination
+        const [emails] = await db.query('SELECT * FROM emails WHERE from_user_id = ? ORDER BY sent_at DESC LIMIT ? OFFSET ?', [userId, limit, offset]);
+
+        res.render('outbox', { 
+            emails, 
+            currentPage: page, 
+            totalPages 
+        });
     } catch (err) {
         console.error('Error fetching outbox emails:', err);
         res.status(500).send('Internal Server Error');
     }
 });
+
 
 // Delete emails
 router.delete('/delete', isAuthenticated, express.json(), async (req, res) => {
@@ -150,13 +179,14 @@ router.delete('/delete', isAuthenticated, express.json(), async (req, res) => {
     const query = `
         DELETE FROM emails
         WHERE id IN (${placeholders})
-        AND (from_user_id = ? OR to_user_id = ?)
+        AND to_user_id = ?
     `;
+    console.log('Userid :', userId);
 
     console.log('Executing query:', query);
 
     try {
-        await db.query(query, [...ids, userId, userId]);
+        await db.query(query, [...ids, userId]);
         res.status(200).send('Emails deleted successfully');
     } catch (err) {
         console.error('Error deleting emails:', err);
