@@ -1,39 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise');
 const dotenv = require('dotenv');
 const cookieParser = require("cookie-parser");
 
 dotenv.config(); // Load environment variables
 
 // Create a MySQL connection
-const db = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-});
-
-
-
-// Connect to the database
-db.connect(err => {
-    if (err) {
-        console.error('Database connection failed:', err);
-        return;
+let db;
+async function connectToDatabase() {
+    try {
+        db = await mysql.createConnection({
+            host: process.env.DB_HOST,
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
+        });
+    } catch (err) {
+        console.error('Cannot connect to the database:', err);
+        process.exit(1); // Exit the process with an error code
     }
-});
-
-module.exports = db;
-
-// // Middleware for checking if the user is authenticated
-// function isAuthenticated(req, res, next) {
-//     if (req.cookies.userId) {
-//         return res.redirect('/emails/inbox');
-//     }
-//     res.status(403).render('access-denied');
-// }
-
+}
+connectToDatabase();
 
 // Render the sign-in page (homepage)
 router.get('/signin', (req, res) => {
@@ -56,46 +44,50 @@ router.post('/signup', async (req, res) => {
     }
 
     // Check if email is already used
-    db.query('SELECT * FROM users WHERE email = ?', [email], (err, results) => {
-        if (err) throw err;
+    try {
+        const [results] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
         if (results.length > 0) {
             return res.status(400).send('Email already used');
         }
 
-         // Insert user into the database without hashing the password
-         db.query('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', [name, email, password], (err) => {
-            if (err) throw err;
-            res.redirect('/signin');
-        });
-    });
+        // Insert user into the database without hashing the password
+        await db.query('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', [name, email, password]);
+        res.redirect('/signin');
+    } catch (err) {
+        console.error('Error during sign-up:', err);
+        res.status(500).send('Internal Server Error');
+    }
 });
 
 // Handle sign-in
-router.post('/signin', (req, res) => {
+router.post('/signin', async (req, res) => {
     const { email, password } = req.body;
 
-     db.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password], (err, results) => {
-        if (err) throw err;
+    try {
+        const [results] = await db.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
         if (results.length === 0) {
             return res.status(401).send('Invalid credentials');
         }
-    
+
         // Set cookie for user session with additional options
         res.cookie('userId', results[0].id, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production', 
+            secure: process.env.NODE_ENV === 'production',
             maxAge: 5 * 60 * 1000,  // 5 minutes
             sameSite: 'strict',
             path: '/'
         });
         res.redirect('/emails/inbox');
-    });
+    } catch (err) {
+        console.error('Error during sign-in:', err);
+        res.status(500).send('Internal Server Error');
+    }
 });
 
 // Handle sign-out
 router.get('/signout', (req, res) => {
     console.log('Sign out route accessed');
-    res.clearCookie('userId',isAuthenticated, {
+    res.clearCookie('userId', {
         path: '/', // Ensure the path matches the one used during cookie creation
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',

@@ -1,26 +1,90 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Inbox</title>
+  <title>Inbox</title>
+  <script>
+    async function deleteEmails() {
+      try {
+        const checkboxes = document.querySelectorAll('input[name="emailCheckbox"]:checked');
+        const ids = Array.from(checkboxes).map(checkbox => parseInt(checkbox.value));
+        console.log('Selected IDs:', ids);
+        if (!ids.length) {
+          alert('Please select at least one email to delete');
+          return;
+        }
+        const response = await fetch('/emails/delete', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ ids })
+        });
+        console.log('Response status:', response.status);
+        if (response.ok) {
+          // Access responseData only if the response is successful
+          const responseData = await response.text();
+          console.log('Response data:', responseData);
+          // Remove deleted emails from the DOM
+          ids.forEach(id => {
+            const row = document.getElementById(`email-${id}`);
+            if (row) {
+              row.remove();
+            }
+          });
+          alert('Emails deleted successfully');
+        } else {
+          // Handle error responses
+          const errorData = await response.text();
+          throw new Error(errorData || 'Failed to delete emails');
+        }
+      } catch (error) {
+        console.error('Error deleting emails:', error);
+        alert('Error deleting emails: ' + error.message);
+      }
+    }
+  </script>
 </head>
 <body>
-    <h1>Inbox</h1>
-    <a href="/emails/compose">Compose</a>
-    <a href="/emails/outbox"> Out Box</a>
-    <a href="/auth/signin">Sign Out</a>
-    <table>
-        <tr>
-            <th>Sender</th>
-            <th>Subject</th>
-            <th>Received At</th>
+  <h1>Inbox</h1>
+  <div class="controls">
+    <a href="/emails/compose" class="button">Compose</a>
+    <a href="/emails/outbox" class="button">Out Box</a>
+    <a href="/auth/signin" class="button">Sign Out</a>
+    <button onclick="deleteEmails()" class="button delete">Delete Selected</button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
+        <th>Sender</th>
+        <th>Subject</th>
+        <th>Received At</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% emails.forEach(email => { %>
+        <tr id="email-<%= email.id %>">
+          <td>
+            <input type="checkbox" name="emailCheckbox" value="<%= email.id %>">
+          </td>
+          <td><%= email.from_user_id %></td>
+          <td>
+            <a href="/emails/detail/<%= email.id %>">
+              <%= email.subject || '(no subject)' %>
+            </a>
+          </td>
+          <td><%= new Date(email.sent_at).toLocaleString() %></td>
         </tr>
-        <% emails.forEach(email => { %>
-            <tr>
-                <td><%= email.from_user_id %></td>
-                <td><a href="/emails/detail/<%= email.id %>"><%= email.subject || '(no subject)' %></a></td>
-                <td><%= new Date(email.sent_at).toLocaleString() %></td>
-            </tr>
-        <% }); %>
-    </table>
+      <% }); %>
+    </tbody>
+  </table>
+  <script>
+    function toggleAll(source) {
+      const checkboxes = document.getElementsByName('emailCheckbox');
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = source.checked;
+      });
+    }
+  </script>
 </body>
 </html>

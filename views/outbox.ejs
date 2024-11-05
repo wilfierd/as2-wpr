@@ -2,12 +2,38 @@
 <html>
 <head>
     <title>Outbox</title>
+    <script>
+        async function deleteEmails() {
+            const checkboxes = document.querySelectorAll('input[name="emailCheckbox"]:checked');
+            const ids = Array.from(checkboxes).map(checkbox => checkbox.value);
+            if (ids.length === 0) {
+                alert('No emails selected');
+                return;
+            }
+            const response = await fetch('/emails/delete', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids })
+            });
+            if (response.ok) {
+                ids.forEach(id => {
+                    document.getElementById(`email-${id}`).remove();
+                });
+            } else {
+                alert('Failed to delete emails');
+            }
+        }
+    </script>
+    </script>
 </head>
 <body>
     <h1>Outbox</h1>
     <a href="/emails/compose">Compose</a>
     <a href="/emails/inbox">InBox</a>
     <a href="/auth/signin">Sign Out</a>
+    <button onclick="deleteEmails()">Delete</button>
     <table>
         <tr>
             <th>To</th>
@@ -15,7 +41,8 @@
             <th>Sent At</th>
         </tr>
         <% emails.forEach(email => { %>
-            <tr>
+            <tr id="email-<%= email.id %>">
+                <td><input type="checkbox" name="emailCheckbox" value="<%= email.id %>"></td>
                 <td><%= email.to_user_id %></td>
                 <td><a href="/emails/detail/<%= email.id %>"><%= email.subject || '(no subject)' %></a></td>
                 <td><%= new Date(email.sent_at).toLocaleString() %></td>
