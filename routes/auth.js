@@ -25,7 +25,7 @@ connectToDatabase();
 
 // Render the sign-in page (homepage)
 router.get('/signin', (req, res) => {
-    res.render('signin'); // Render the sign-in page view (e.g., views/signin.ejs)
+    res.render('signin'); 
 });
 
 // Handle sign-up
