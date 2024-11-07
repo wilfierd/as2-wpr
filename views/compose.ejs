@@ -1,25 +1,120 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Compose Email</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Compose - Messages</title>
+    <link rel="stylesheet" href="/mailbox.css">
+    <style>
+        .compose-form {
+            background: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group select,
+        .form-group input[type="text"],
+        .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .form-group textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        .form-group input[type="file"] {
+            padding: 8px 0;
+        }
+
+        .send-button {
+            background:#d1ac88;
+            color: #383838;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .send-button:hover {
+            background: #c19c78;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+    </style>
 </head>
 <body>
-    <h1>Compose Email</h1>
-    <form action="/emails/compose" method="POST" enctype="multipart/form-data">
-        <% if (users.length > 0) { %>
-            <select name="recipientId" required>
-            <option value="">Select Recipient</option>
-            <% users.forEach(user => { %>
-                <option value="<%= user.id %>"><%= user.name %></option>
-            <% }); %>
-            </select>
-        <% } else { %>
-            <p>No recipients available</p>
-        <% } %>
-        <input type="text" name="subject" placeholder="Subject">
-        <textarea name="body" placeholder="Email Body"></textarea>
-        <input type="file" name="attachment">
-        <button type="submit">Send</button>
-    </form>
+    <header class="topBar">
+        <h1>Messages</h1>
+        <a href="/auth/signin" class="btn">Sign out</a>
+    </header>
+
+    <div class="wrapper">
+        <nav class="sidebar">
+            <a href="/emails/compose" class="navLink active">
+                ✍️ New message
+            </a>
+            <a href="/emails/inbox" class="navLink">
+                📥 Received
+            </a>
+            <a href="/emails/outbox" class="navLink">
+                📤 Sent
+            </a>
+        </nav>
+
+        <main class="content">
+            <form action="/emails/compose" method="POST" enctype="multipart/form-data" class="compose-form">
+                <div class="form-group">
+                    <label for="recipient">To:</label>
+                    <% if (users.length > 0) { %>
+                        <select name="recipientId" id="recipient" required>
+                            <option value="">Select Recipient</option>
+                            <% users.forEach(user => { %>
+                                <option value="<%= user.id %>"><%= user.name %></option>
+                            <% }); %>
+                        </select>
+                    <% } else { %>
+                        <p class="error">No recipients available</p>
+                    <% } %>
+                </div>
+
+                <div class="form-group">
+                    <label for="subject">Subject:</label>
+                    <input type="text" id="subject" name="subject" placeholder="Enter subject">
+                </div>
+
+                <div class="form-group">
+                    <label for="body">Message:</label>
+                    <textarea id="body" name="body" placeholder="Type your message here"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="attachment">Attachment:</label>
+                    <input type="file" id="attachment" name="attachment">
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="send-button">Send Message</button>
+                </div>
+            </form>
+        </main>
+    </div>
 </body>
 </html>

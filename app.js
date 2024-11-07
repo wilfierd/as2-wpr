@@ -22,18 +22,19 @@ async function connectToDatabase() {
         return db;
     } catch (err) {
         console.error('Cannot connect to the database:', err);
-        process.exit(1); // Exit the process with an error code
+        process.exit(1); 
     }
 }
 
 connectToDatabase();
 
+
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.set('view engine', 'ejs');
+app.use(express.static('public'));
 
 // Routes
 const authRoute = require('./routes/auth');

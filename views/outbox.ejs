@@ -1,131 +1,132 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Outbox</title>
-  <style>
-    /* Add your styles here */
-    .pagination {
-        margin-top: 20px;
-    }
-    .pagination a {
-        margin: 0 5px;
-        text-decoration: none;
-        padding: 8px 12px;
-        background-color: #f1f1f1;
-        color: #333;
-        border-radius: 4px;
-    }
-    .pagination a.active {
-        background-color: #4CAF50;
-        color: white;
-    }
-    .pagination a.disabled {
-        background-color: #ddd;
-        color: #999;
-        pointer-events: none;
-    }
-</style>
+  <title>Messages</title>
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Messages</title>
+    <link rel="stylesheet" href="/mailbox.css">
 </head>
 <body>
-  <h1>Inbox</h1>
-  <div class="controls">
-    <a href="/emails/compose" class="button">Compose</a>
-    <a href="/emails/inbox" class="button">InBox</a>
-    <a href="/auth/signin" class="button">Sign Out</a>
-    <button onclick="deleteEmails()" class="button delete">Delete Selected</button>
-  </div>
-  <form id="emailsForm">
+  <header class="topBar">
+    <h1>Messages</h1>
+    <a href="/auth/signin" class="btn">Sign out</a>
+  </header>
+
+  <div class="wrapper">
+    <nav class="sidebar">
+      <a href="/emails/compose" class="navLink">
+        ✍️ New message
+      </a>
+      <a href="/emails/inbox" class="navLink ">
+        📥 Received
+      </a>
+      <a href="/emails/outbox" class="navLink active">
+        📤 Sent
+      </a>
+    </nav>
+
+    <main class="content">
+      <div class="toolbar">
+        <button onclick="removeSelected()" class="deleteBtn">Remove</button>
+      </div>
+
+      <form id="msgsForm">
         <table>
-            <thead>
+          <thead>
             <tr>
-                <th><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
-                <th>To</th>
-                <th>Subject</th>
-                <th>Received At</th>
+              <th>
+                <div class="checkbox">
+                  <input type="checkbox" id="selectAll" onclick="toggleCheckboxes(this)">
+                </div>
+              </th>
+              <th class="sender">From</th>
+              <th>Subject</th>
+              <th class="date">Date</th>
             </tr>
-            </thead>
-            <tbody>
-            <% emails.forEach(email => { %>
-                <tr id="email-<%= email.id %>">
+          </thead>
+          <tbody>
+            <% emails.forEach(msg => { %>
+              <tr id="msg-<%= msg.id %>">
                 <td>
-                    <input type="checkbox" name="emailCheckbox" value="<%= email.id %>">
+                  <div class="checkbox">
+                    <input type="checkbox" name="msgCheck" value="<%= msg.id %>">
+                  </div>
                 </td>
-                <td><%= email.to_user_id %></td>
+                <td class="sender"><%= msg.to_user_id %></td>
                 <td>
-                    <a href="/emails/detail/<%= email.id %>">
-                    <%= email.subject || '(no subject)' %>
-                    </a>
+                  <a href="/emails/detail/<%= msg.id %>" class="msgLink">
+                    <%= msg.subject || '(no subject)' %>
+                  </a>
                 </td>
-                <td><%= new Date(email.sent_at).toLocaleString() %></td>
-                </tr>
+                <td class="date"><%= new Date(msg.sent_at).toLocaleString() %></td>
+              </tr>
             <% }); %>
-            </tbody>
+          </tbody>
         </table>
-  </form>
-   <!-- Pagination Controls -->
-   <div class="pagination">
-    <% if (currentPage > 1) { %>
-        <a href="/emails/outbox?page=<%= currentPage - 1 %>">Previous</a>
-    <% } else { %>
-        <a class="disabled">Previous</a>
-    <% } %>
+      </form>
 
-    <% for(let i = 1; i <= totalPages; i++) { %>
-        <a href="/emails/outbox?page=<%= i %>" class="<%= i === currentPage ? 'active' : '' %>"><%= i %></a>
-    <% } %>
+      <div class="pages">
+        <% if (currentPage > 1) { %>
+          <a href="/emails/outbox?page=<%= currentPage - 1 %>" class="pageLink">Previous</a>
+        <% } else { %>
+          <a class="pageLink disabled">Previous</a>
+        <% } %>
 
-    <% if (currentPage < totalPages) { %>
-        <a href="/emails/outbox?page=<%= currentPage + 1 %>">Next</a>
-    <% } else { %>
-        <a class="disabled">Next</a>
-    <% } %>
-</div>
+        <% for(let i = 1; i <= totalPages; i++) { %>
+          <a href="/emails/outbox?page=<%= i %>" 
+             class="pageLink <%= i === currentPage ? 'current' : '' %>">
+            <%= i %>
+          </a>
+        <% } %>
+
+        <% if (currentPage < totalPages) { %>
+          <a href="/emails/outbox?page=<%= currentPage + 1 %>" class="pageLink">Next</a>
+        <% } else { %>
+          <a class="pageLink disabled">Next</a>
+        <% } %>
+      </div>
+    </main>
+  </div>
+
   <script>
-        async function deleteEmails() {
-          try {
-            const checkboxes = document.querySelectorAll('input[name="emailCheckbox"]:checked');
-            const ids = Array.from(checkboxes).map(checkbox => parseInt(checkbox.value));
-            console.log('Selected IDs:', ids);
-            if (!ids.length) {
-              alert('Please select at least one email to delete');
-              return;
-            }
-            const response = await fetch('/emails/delete', {
-              method: 'DELETE',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ ids })
-            });
-            console.log('Response status:', response.status);
-            if (response.ok) {
-              // Access responseData only if the response is successful
-              const responseData = await response.text();
-              console.log('Response data:', responseData);
-              // Remove deleted emails from the DOM
-              ids.forEach(id => {
-                const row = document.getElementById(`email-${id}`);
-                if (row) {
-                  row.remove();
-                }
-              });
-              alert('Emails deleted successfully');
-            } else {
-              // Handle error responses
-              const errorData = await response.text();
-              throw new Error(errorData || 'Failed to delete emails');
-            }
-          } catch (error) {
-            console.error('Error deleting emails:', error);
-            alert('Error deleting emails: ' + error.message);
-          }
+    async function removeSelected() {
+      try {
+        const selected = document.querySelectorAll('input[name="msgCheck"]:checked');
+        const toRemove = Array.from(selected).map(box => parseInt(box.value));
+        
+        if (!toRemove.length) {
+          alert('Please select messages to remove');
+          return;
         }
-      
-        function toggleAll(source) {
-        const checkboxes = document.getElementsByName('emailCheckbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = source.checked;
+
+        const response = await fetch('/emails/delete', {
+          method: 'DELETE',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ items: toRemove })
         });
+
+        if (response.ok) {
+          toRemove.forEach(id => {
+            const element = document.getElementById(`msg-${id}`);
+            element?.remove();
+          });
+          alert('Messages removed');
+        } else {
+          throw new Error(await response.text() || 'Failed to remove messages');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+      }
+    }
+
+    function toggleCheckboxes(source) {
+      const boxes = document.getElementsByName('msgCheck');
+      boxes.forEach(box => box.checked = source.checked);
     }
   </script>
 </body>

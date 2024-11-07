@@ -87,7 +87,7 @@ router.post('/signin', async (req, res) => {
         res.cookie('userId', results[0].id, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            maxAge: 5 * 60 * 1000,  // 5 minutes
+            maxAge: 30 * 60 * 1000,  // 30 minutes
             sameSite: 'strict',
             path: '/'
         });

@@ -1,0 +1,11 @@
+<nav class="sidebar">
+  <a href="/emails/compose" class="navLink <%= currentPage === 'compose' ? 'active' : '' %>">
+    ✍️ New message
+  </a>
+  <a href="/emails/inbox" class="navLink <%= currentPage === 'inbox' ? 'active' : '' %>">
+    📥 Received
+  </a>
+  <a href="/emails/outbox" class="navLink <%= currentPage === 'outbox' ? 'active' : '' %>">
+    📤 Sent
+  </a>
+</nav>
